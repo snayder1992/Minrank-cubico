@@ -1,0 +1,41 @@
+q := 5;
+n := 4; 
+D := 2;
+m:=n+n^2;
+
+
+FldF<a> := GF(q);
+g<w> := IrreduciblePolynomial(FldF, n);
+FldK<y> := ExtensionField<FldF, w | g>;
+V,phi:= VectorSpace(FldK,FldF); 
+R<X> := PolynomialRing(FldK);
+
+
+S:=[];
+for k in [1..D] do
+
+ v1:=Random(V);
+  
+ v2:=Random(V);
+
+ ten:=TensorProduct(v1,v2);
+
+ S[k]:=Matrix([[ten[i+n*(j-1)] : i in [1..n]] : j in [1..n]]);
+
+end for;
+
+
+
+A:=[  &+[ Random(FldF)*S[j] : j in [1..D]] : i in [1..n] ];
+
+Q:=[];
+
+for i in [1..m-1] do
+  
+  Q[i]:=[  RandomMatrix(FldF,n,n) : j in [1..n]];
+  
+end for;
+
+a:=[Random(FldF) : i in [1..m-1]];
+
+Q[m]:=[ A[i]-&+[a[j]*Q[j][i] : j in [1..m-1]] : i in [1..n]];
