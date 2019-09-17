@@ -1,0 +1,49 @@
+
+//SetOutputFile("verboseminrank.txt":Overwrite:=false ); 
+
+t := Cputime();
+
+SetVerbose("Faugere",1) ;
+  
+
+
+
+
+//construction of the ks system
+
+R2<[X2]> := PolynomialRing(FldK,D^2*(n-D^2)+ n+n^2-1); // define anillo polys
+
+
+ VarCL:=[ R2.i : i in [1..n+n^2-1]];               // variables of the linear combination
+ VarK := [R2.i : i in [n+n^2..Rank(R2)]] ;  //variables of the kernel
+ 
+
+
+MvarK := VerticalJoin(IdentityMatrix(R2,n-D^2),Matrix(n-D^2,VarK));   //matrix of the kernel vector
+
+MR:=(y*ChangeRing(B[1],R2)+&+[ VarCL[l]*ChangeRing(B[l+1],R2) : l in [1..n^2+n-1]])*MvarK;
+MR:=Eltseq(MR);
+
+
+I:=ideal<R2|MR>;
+//GI:=GroebnerBasis(I);
+V1:=Variety(I);
+
+
+
+
+
+
+MemoriaMax := GetMaximumMemoryUsage();
+MemoriaMax := Floor(MemoriaMax/(2^20));
+
+
+"Maxima memoria usada";
+MemoriaMax;
+
+timing := Cputime(t);
+printf "\n The time to solve the minrank is %o seconds\n------------", timing;
+
+//load "equivalentkey.txt";
+
+//UnsetOutputFile() ;
