@@ -1,0 +1,111 @@
+SetOutputFile("aleatorio.txt":Overwrite:=false ); 
+
+SetMemoryLimit(107374182400);
+t := Cputime();
+
+SetVerbose("Faugere",1) ;
+
+
+
+q := 13;
+n := 5; 
+D := 1;
+m:=n^2+n;
+
+
+FldF<a> := GF(q);
+g<w> := IrreduciblePolynomial(FldF, n);
+FldK<y> := ExtensionField<FldF, w | g>;
+V,phi:= VectorSpace(FldK,FldF); 
+R<X> := PolynomialRing(FldK);
+
+
+vector_u:=[];
+
+for k in [1..D] do 
+ vector_u[k]:=Random(V);
+end for;
+
+A:=[];
+S:=[];
+t_i:=[Random(FldF): i in [1..D]];
+
+
+for k in [1..n] do
+
+ S[k]:=&+[t_i[i]*vector_u[i][k]*TensorProduct(vector_u[i],vector_u[i]) : i in [1..D]];
+
+ A[k]:=ChangeRing(Matrix([[ S[k][i+n*(j-1)] : i in [1..n]] : j in [1..n]]),FldK);
+end for;
+
+
+
+Q:=[];
+Q_symmetric:=[];
+Q_lista:=[];
+
+for l in [1..m-1] do
+  
+  Q[l]:=[  RandomMatrix(FldF,n,n) : j in [1..n]];
+  Q_lista[l]:=[1/6*(Q[l][i][j][k]+Q[l][i][k][j]+Q[l][j][i][k]+Q[l][j][k][i]+Q[l][k][i][j]+Q[l][k][j][i]) :
+      i in [1..n],j in [1..n],k in [1..n]];
+  Q_symmetric[l]:=[ChangeRing(Matrix([[Q_lista[l][i+(j-1)*n+(k-1)*n^2]: i in [1..n]  ]: j in [1..n]]),FldK)  : k in [1..n]];
+
+  
+end for;
+
+a:=[Random(FldK) : i in [1..m-1]];
+
+Q_symmetric[m]:=[ A[i]-&+[a[j]*Q_symmetric[j][i] : j in [1..m-1]] : i in [1..n]];
+
+
+
+//construction of the ks system
+
+R2<[X]> := PolynomialRing(FldK,D*(n-D)+ m); 
+ x := [R2.i : i in [m+1..Rank(R2)]] ;
+ y:=[ R2.i : i in [1..m]];
+
+
+T := VerticalJoin(IdentityMatrix(R2,n-D),Matrix(n-D,x));
+  
+
+ 
+//B:=[ZeroMatrix(R,n^2,n) : i in [1..m]];
+B:=[];
+
+for l in [1..m] do
+  vv:=[-Vector([Q_symmetric[l][k][i][j] : i in [1..n] , j in [1..n]]): k in [D+1..n]] cat [Vector([Q_symmetric[l][k][i][j] : i in [1..n] , j in [1..n]]): k in [1..D]]  ;
+
+ vv:=VerticalJoin(vv);
+ B[l]:=Transpose(vv);
+
+end for;
+
+
+
+//MR:=(&+[ y[l]*ChangeRing(B[l],R2) : l in [1..n+n^2]])*T;
+MR:=(ChangeRing(B[m],R2)+&+[ y[l]*ChangeRing(B[l],R2) : l in [1..m-1]])*T;
+MR:=Eltseq(MR);
+
+
+
+
+
+I:=ideal<R2|MR>;
+V1:=Variety(I);
+
+
+
+UnsetOutputFile() ;
+
+MemoriaMax := GetMaximumMemoryUsage();
+MemoriaMax := Floor(MemoriaMax/(2^20));
+
+
+"Maxima memoria usada";
+MemoriaMax;
+
+timing := Cputime(t);
+printf "\n The time to solve the minrank is %o seconds\n------------", timing;
+
