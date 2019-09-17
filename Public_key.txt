@@ -1,0 +1,120 @@
+t := Cputime();
+
+q := 5;
+n := 40; 
+D := 3;
+
+FldF<a> := GF(q);
+g<w> := IrreduciblePolynomial(FldF, n);
+FldK<y> := ExtensionField<FldF, w | g>;
+V,phi:= VectorSpace(FldK,FldF); 
+R<X> := PolynomialRing(FldK);
+
+//Dirac's delta function
+delta := function(a,b)
+	if a eq b then
+		return 1;
+	else 
+		return 0;
+	end if;
+end function;
+
+//Mod function such that 0 mod n = n
+modl := function(a,b)
+	c := a mod b;
+	if c eq 0 then
+		return b;
+	else 
+		return c;
+	end if;
+end function;
+
+//Companion matrix
+Cg := Transpose(CompanionMatrix(g)); 
+
+//Necessary matrices for the cyclic shift
+MatrixD := [Matrix([[ delta((s+j) mod n,t mod n) : t in [1..n]] : s in [1..n]]) : j in [0..D]]; 
+
+//Matrix Delta
+Delta := Matrix([[ (y^(t-1))^(q^(s-1)) : t in [1..n]] : s in [1..n]]);
+DeltaInv := Delta^-1;
+
+//Definition of S and T
+T := Matrix([[ Random(FldF) : t in [1..n]] : s in [1..n]]);
+while Determinant(T) eq 0 do
+	T := Matrix([[ Random(FldF) : t in [1..n]] : s in [1..n]]);
+end while;
+
+S := Matrix([[ Random(FldF) : t in [1..n]] : s in [1..n]]);
+while Determinant(S) eq 0 do
+	S := Matrix([[ Random(FldF) : t in [1..n]] : s in [1..n]]);
+end while;
+
+T := ScalarMatrix(FldF, n, 1);
+//S := ScalarMatrix(FldF, n, 1);
+
+//Definition of F(X)
+F := [[[Random(FldF) : i in [1..n]] : t in [1..n]] : s in [1..n]];
+F_ := Matrix([[Inverse(phi)(F[s][t]) : t in [1..n]] : s in [1..n]]);
+
+//Definition of G(X)
+lowdeg := function(s,t,D) //Bounds the degree of G
+	if D ge Maximum(s-1,t-1) then
+		return 1;
+	else
+		return 0;
+	end if;
+end function;
+	
+G := [Matrix([[Random(FldK)*lowdeg(s,t,D) : t in [1..n]] : s in [1..n]]) : j in [0..D]]; //VERY sparse matrices
+//G := [Matrix([[(FldK!0)*lowdeg(s,t,D) : t in [1..n]] : s in [1..n]]) : j in [0..D]];
+
+//Definition of M_j(X)
+M := [[Random(FldK) : i in [1..n]] : j in [0..D]];
+
+//Computation of A_j (most inefficient part)
+PwrEntriesF := [[Delta*Matrix(FldK,n,1, F[s][t]): t in [1..n] ]: s in [1..n]]; //It finds the powers q^i of the entries of F
+F_i := [Matrix([[PwrEntriesF[modl(s-i,n)][modl(t-i,n)][i+1][1] : t in [1..n]] : s in [1..n]]): i in [0..n-1]]; //
+
+A := [];
+for j in [0..D] do
+	temp := 0;
+	for i in [0..n-1] do
+		temp +:= M[j+1][i+1]*F_i[i+1];
+	end for;
+	A[j+1] := temp + G[j+1];
+end for; 
+
+//ADDED: Our A's will be symmetric:
+A := [(1/2)*(Transpose(A[i]) + A[i]) : i in [1..#A]]; //This fails if q=2, but that's not a problem
+
+//Computation of BarA
+DeltaS := Delta*S;
+BarA := [Transpose(DeltaS)*A[j+1]*DeltaS : j in [0..D]];
+
+//Computation of BarD
+BarD := [Matrix(FldF,DeltaInv*MatrixD[j+1]*DeltaS) : j in [0..D]];
+
+//Products T * C(g)^i * BarD_j
+TCD := [[T*(Cg^i)*BarD[j+1]: i in [0..n-1]] : j in [0..D]];
+
+//Matrices phi(A_j)
+phiA_j := [ [ Transpose(Matrix([ phi(BarA[j+1][s_][i]) : i in [1..n]])) : s_ in [1..n]] : j in [0..D]];
+
+//Construction of Q_{s,t} (public key polinomials)
+Q := [];
+for s in [1..n] do
+    Q[s] := [];
+    for t in [1..n] do
+	Q[s][t] := ZeroMatrix(FldF, n, n);
+	for j in [0..D] do
+	    temp := Matrix(1,n, [TCD[j+1][i+1][s][t] : i in [0..n-1]] );
+	    Q[s][t] +:= Matrix ( [ temp*phiA_j[j+1][s_] : s_ in [1..n]] );
+	end for;
+    end for;
+end for;
+		
+timing := Cputime(t);
+printf "\n\n-------------------------------------------------------------\n The time to generate the public key is %o seconds\n-------------------------------------------------------------", timing;
+
+/* load "MinRank"; */
