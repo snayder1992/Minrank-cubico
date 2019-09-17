@@ -1,0 +1,55 @@
+R1<[X1]>:=PolynomialRing(FldF,n);
+
+p_cuad:=[ &+[ X1[i]*&+[F[k][i][j]*X1[j] :j in [1..n]] : i in [1..n]  ] : k in [1..n]];
+
+
+
+P:=[[ZeroMatrix(FldF,n,n): i in [1..n]]: j in [1..n^2]];
+
+
+for i in [1..n] do
+for j in [1..n] do
+  P[j+(i-1)*n][j]:=SymmetricMatrix(p_cuad[i]);
+end for;
+end for;
+
+
+P_lista:=[[1/6*(P[l][i][j][k]+P[l][i][k][j]+P[l][j][i][k]+P[l][j][k][i]+P[l][k][i][j]+P[l][k][j][i]) :
+      i in [1..n],j in [1..n],k in [1..n]]: l in [1..#P]];
+   
+
+P_symmetric:=[[ChangeRing(Matrix([[P_lista[l][i+(j-1)*n+(k-1)*n^2]: i in [1..n]  ]: j in [1..n]]),FldK)  : k in [1..n]]: l in [1..n^2]];
+
+Q_lista:=[[1/6*(Q[l][i][j][k]+Q[l][i][k][j]+Q[l][j][i][k]+Q[l][j][k][i]+Q[l][k][i][j]+Q[l][k][j][i]) :
+      i in [1..n],j in [1..n],k in [1..n]]: l in [1..#Q]];
+
+Q_symmetric:=[[ChangeRing(Matrix([[Q_lista[l][i+(j-1)*n+(k-1)*n^2]: i in [1..n]  ]: j in [1..n]]),FldK)  : k in [1..n]]: l in [1..n]];
+
+
+
+
+B:=[];
+Vectormatrix:=[];
+
+for l in [1..n] do
+
+   Vectormatrix[l]:=[-Vector([Q_symmetric[l][k][i][j] : i in [1..n] , j in [1..n]]): k in [D^2+1..n]] cat [Vector([Q_symmetric[l][k][i][j] : i in [1..n] , j in [1..n]]): k in [1..D^2]]  ;
+
+   B[l]:=Transpose(VerticalJoin(Vectormatrix[l]));
+
+end for;
+
+
+
+
+for l in [1..n^2] do
+
+   Vectormatrix[l+n]:=[-Vector([P_symmetric[l][k][i][j] : i in [1..n] , j in [1..n]]): k in [D^2+1..n]] cat [Vector([P_symmetric[l][k][i][j] : i in [1..n] , j in [1..n]]): k in [1..D^2]]  ;
+
+   B[l+n]:=Transpose(VerticalJoin(Vectormatrix[l+n]));
+
+end for;
+
+load "minrankhirac.txt";
+
+
